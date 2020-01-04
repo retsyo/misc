@@ -1,0 +1,152 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/8.3.1/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad: true});</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.2.7/raphael.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-sequence-diagrams/1.0.6/sequence-diagram-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flowchart/1.6.5/flowchart.js"></script>
+<script>
+(function () {
+'use strict';
+
+/**
+ * Targets special code or div blocks and converts them to UML.
+ * @param {object} converter is the object that transforms the text to UML.
+ * @param {string} className is the name of the class to target.
+ * @param {object} settings is the settings for converter.
+ * @return {void}
+ */
+var uml = (function (converter, className, settings) {
+
+  var getFromCode = function getFromCode(parent) {
+    // Handles <pre><code>
+    var text = "";
+    for (var j = 0; j < parent.childNodes.length; j++) {
+      var subEl = parent.childNodes[j];
+      if (subEl.tagName.toLowerCase() === "code") {
+        for (var k = 0; k < subEl.childNodes.length; k++) {
+          var child = subEl.childNodes[k];
+          var whitespace = /^\s*$/;
+          if (child.nodeName === "#text" && !whitespace.test(child.nodeValue)) {
+            text = child.nodeValue;
+            break;
+          }
+        }
+      }
+    }
+    return text;
+  };
+
+  var getFromDiv = function getFromDiv(parent) {
+    // Handles <div>
+    return parent.textContent || parent.innerText;
+  };
+
+  // Change body to whatever element your main Markdown content lives.
+  var body = document.querySelectorAll("body");
+  var blocks = document.querySelectorAll("pre." + className + ",div." + className
+
+  // Is there a settings object?
+  );var config = settings === void 0 ? {} : settings;
+
+  // Find the UML source element and get the text
+  for (var i = 0; i < blocks.length; i++) {
+    var parentEl = blocks[i];
+    var el = document.createElement("div");
+    el.className = className;
+    el.style.visibility = "hidden";
+    el.style.position = "absolute";
+
+    var text = parentEl.tagName.toLowerCase() === "pre" ? getFromCode(parentEl) : getFromDiv(parentEl);
+
+    // Insert our new div at the end of our content to get general
+    // typeset and page sizes as our parent might be `display:none`
+    // keeping us from getting the right sizes for our SVG.
+    // Our new div will be hidden via "visibility" and take no space
+    // via `position: absolute`. When we are all done, use the
+    // original node as a reference to insert our SVG back
+    // into the proper place, and then make our SVG visible again.
+    // Lastly, clean up the old node.
+    body[0].appendChild(el);
+    var diagram = converter.parse(text);
+    diagram.drawSVG(el, config);
+    el.style.visibility = "visible";
+    el.style.position = "static";
+    parentEl.parentNode.insertBefore(el, parentEl);
+    parentEl.parentNode.removeChild(parentEl);
+  }
+});
+
+(function () {
+  var onReady = function onReady(fn) {
+    if (document.addEventListener) {
+      document.addEventListener("DOMContentLoaded", fn);
+    } else {
+      document.attachEvent("onreadystatechange", function () {
+        if (document.readyState === "interactive") {
+          fn();
+        }
+      });
+    }
+  };
+
+  onReady(function () {
+    if (typeof flowchart !== "undefined") {
+      uml(flowchart, "uml-flowchart");
+    }
+
+    if (typeof Diagram !== "undefined") {
+      uml(Diagram, "uml-sequence-diagram", { theme: "simple" });
+    }
+  });
+})();
+
+}());
+</script>
+
+</head>
+<body>
+
+<div class="uml-flowchart">
+st=>start: Start
+op=>operation: Your Operation
+cond=>condition: Yes or No?
+e=>end
+
+st->op->cond
+cond(yes)->e
+cond(no)->op
+</div>
+
+<br>
+
+<div class="uml-flowchart">
+st=>start: Start|past:>http://www.google.com[blank]
+e=>end: End:>http://www.google.com
+op1=>operation: My Operation|past:$myFunction
+op2=>operation: Stuff|current
+sub1=>subroutine: My Subroutine|invalid
+cond=>condition: Yes
+or No?|approved:>http://www.google.com
+c2=>condition: Good idea|rejected
+io=>inputoutput: catch something...|request
+para=>parallel: parallel tasks
+
+st->op1(right)->cond
+cond(yes, right)->c2
+cond(no)->para
+c2(true)->io->e
+c2(false)->e
+
+para(path1, bottom)->sub1(left)->op1
+para(path2, right)->op2->e
+
+st@>op1({"stroke":"Red"})@>cond({"stroke":"Red","stroke-width":6,"arrow-end":"classic-wide-long"})@>c2({"stroke":"Red"})@>op2({"stroke":"Red"})@>e({"stroke":"Red"})
+</div>
+
+</body>
+</html>
